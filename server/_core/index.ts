@@ -16,6 +16,7 @@ import {
   validateProviderInput,
   streamAssistant,
 } from "./assistant";
+import { LEE_MODEL_PROFILE_IDS } from "./localModel";
 import { z } from "zod";
 import { serveStatic, setupVite } from "./vite";
 
@@ -86,6 +87,7 @@ async function startServer() {
         "plans",
         "general",
       ]),
+      profile: z.enum(LEE_MODEL_PROFILE_IDS).default("lee-1.0"),
       messages: assistantMessageListSchema,
     });
     const result = bodySchema.safeParse(req.body);
@@ -117,11 +119,15 @@ async function startServer() {
     try {
       await streamAssistant(
         [
-          { role: "system", content: buildSystemPrompt(result.data.skill) },
+          {
+            role: "system",
+            content: buildSystemPrompt(result.data.skill, result.data.profile),
+          },
           ...result.data.messages,
         ],
         aborter.signal,
-        content => event("token", { content })
+        content => event("token", { content }),
+        result.data.profile
       );
       if (!aborter.signal.aborted) event("done", {});
     } catch (e) {

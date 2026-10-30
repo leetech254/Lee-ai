@@ -12,9 +12,33 @@ export class LocalModelError extends Error {
   }
 }
 
-const DEFAULT_MODEL = "qwen3.5:4b";
 const DEFAULT_BASE_URL = "http://127.0.0.1:11434";
 const MODEL_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+
+export const LEE_MODEL_PROFILE_IDS = [
+  "lee-1.0",
+  "lee-2.0-lite",
+  "lee-2.0-pro",
+] as const;
+export type LeeModelProfile = (typeof LEE_MODEL_PROFILE_IDS)[number];
+
+const modelProfileConfig: Record<
+  LeeModelProfile,
+  { env: string; defaultModel: string }
+> = {
+  "lee-1.0": {
+    env: "VMTECH_LEE_1_MODEL",
+    defaultModel: "qwen3.5:4b",
+  },
+  "lee-2.0-lite": {
+    env: "VMTECH_LEE_2_LITE_MODEL",
+    defaultModel: "qwen3.5:9b",
+  },
+  "lee-2.0-pro": {
+    env: "VMTECH_LEE_2_PRO_MODEL",
+    defaultModel: "qwen3.5:27b",
+  },
+};
 
 function isPrivateIpv4(host: string) {
   const [a, b] = host.split(".").map(Number);
@@ -48,11 +72,18 @@ function isLocalInferenceHost(hostname: string) {
   return false;
 }
 
-export function getConfiguredModelName() {
-  const model = (process.env.OLLAMA_MODEL || DEFAULT_MODEL).trim();
+export function getConfiguredModelName(profile: LeeModelProfile = "lee-1.0") {
+  const config = modelProfileConfig[profile];
+  const legacyFastModel =
+    profile === "lee-1.0" ? process.env.OLLAMA_MODEL : undefined;
+  const model = (
+    process.env[config.env] ||
+    legacyFastModel ||
+    config.defaultModel
+  ).trim();
   if (!MODEL_NAME_PATTERN.test(model)) {
     throw new LocalModelError(
-      "OLLAMA_MODEL must be a simple local model tag, such as qwen3.5:9b."
+      `${config.env} must be a simple local model tag, such as qwen3.5:9b.`
     );
   }
   return model;
@@ -106,10 +137,12 @@ function boundedInteger(
 const localOfflineMessage =
   "VMTech's local AI is not reachable. Start the local stack with `docker compose up -d`, then see LOCAL_AI.md in the project folder.";
 
-export async function getLocalModelStatus() {
+export async function getLocalModelStatus(
+  profile: LeeModelProfile = "lee-1.0"
+) {
   let model: string;
   try {
-    model = getConfiguredModelName();
+    model = getConfiguredModelName(profile);
     const response = await fetch(localEndpoint("api/tags"), {
       redirect: "error",
       signal: AbortSignal.timeout(3_000),
@@ -122,18 +155,25 @@ export async function getLocalModelStatus() {
     const installed =
       Array.isArray(payload.models) &&
       payload.models.some(item => item.name === model);
-    return { online: true, installed, model };
+    return { online: true, installed, model, profile };
   } catch {
     return {
       online: false,
       installed: false,
-      model: process.env.OLLAMA_MODEL || DEFAULT_MODEL,
+      model:
+        process.env[modelProfileConfig[profile].env] ||
+        (profile === "lee-1.0" ? process.env.OLLAMA_MODEL : undefined) ||
+        modelProfileConfig[profile].defaultModel,
+      profile,
     };
   }
 }
 
-export async function generateWithLocalModel(messages: LocalChatMessage[]) {
-  const model = getConfiguredModelName();
+export async function generateWithLocalModel(
+  messages: LocalChatMessage[],
+  profile: LeeModelProfile = "lee-1.0"
+) {
+  const model = getConfiguredModelName(profile);
   const timeoutMs = boundedInteger(
     process.env.OLLAMA_TIMEOUT_MS,
     300_000,

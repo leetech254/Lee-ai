@@ -5,6 +5,7 @@ import {
   getLocalModelStatus,
   localEndpoint,
   LocalModelError,
+  type LeeModelProfile,
   type LocalChatMessage,
 } from "./localModel";
 
@@ -249,7 +250,8 @@ function keepAliveDuration(value: string | undefined) {
 export async function streamAssistant(
   messages: LocalChatMessage[],
   signal: AbortSignal,
-  onToken: (token: string) => void
+  onToken: (token: string) => void,
+  profile: LeeModelProfile = "lee-1.0"
 ) {
   const p = active;
   const controller = new AbortController();
@@ -267,7 +269,7 @@ export async function streamAssistant(
       : p.baseUrl + "/chat/completions";
     const body = ollama
       ? {
-          model: getConfiguredModelName(),
+          model: getConfiguredModelName(profile),
           messages,
           keep_alive: keepAliveDuration(process.env.OLLAMA_KEEP_ALIVE),
           stream: true,
@@ -300,6 +302,10 @@ export async function streamAssistant(
       redirect: "error",
       signal: controller.signal,
     });
+    if (ollama && r.status === 404)
+      throw new LocalModelError(
+        `The selected local model “${getConfiguredModelName(profile)}” is not downloaded. Run “ollama pull ${getConfiguredModelName(profile)}” on the model host, or “docker compose exec ollama ollama pull ${getConfiguredModelName(profile)}” from the VMTech project folder.`
+      );
     if (!r.ok || !r.body)
       throw new LocalModelError(
         ollama
@@ -363,11 +369,19 @@ export async function streamAssistant(
     signal.removeEventListener("abort", abort);
   }
 }
-export async function generateWithProvider(messages: LocalChatMessage[]) {
+export async function generateWithProvider(
+  messages: LocalChatMessage[],
+  profile: LeeModelProfile = "lee-1.0"
+) {
   let content = "";
-  await streamAssistant(messages, new AbortController().signal, token => {
-    content += token;
-  });
+  await streamAssistant(
+    messages,
+    new AbortController().signal,
+    token => {
+      content += token;
+    },
+    profile
+  );
   if (!content.trim())
     throw new LocalModelError(
       "The model returned an empty response. Try again."

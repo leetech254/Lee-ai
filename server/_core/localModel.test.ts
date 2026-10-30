@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { generateWithLocalModel, getLocalModelStatus } from "./localModel";
+import {
+  generateWithLocalModel,
+  getConfiguredModelName,
+  getLocalModelStatus,
+} from "./localModel";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -7,6 +11,31 @@ afterEach(() => {
 });
 
 describe("local model runtime", () => {
+  it("maps the three Lee profiles to their configurable Ollama tags", () => {
+    vi.stubEnv("VMTECH_LEE_1_MODEL", "qwen3.5:4b");
+    vi.stubEnv("VMTECH_LEE_2_LITE_MODEL", "qwen3.5:9b");
+    vi.stubEnv("VMTECH_LEE_2_PRO_MODEL", "qwen3.5:27b");
+    expect(getConfiguredModelName("lee-1.0")).toBe("qwen3.5:4b");
+    expect(getConfiguredModelName("lee-2.0-lite")).toBe("qwen3.5:9b");
+    expect(getConfiguredModelName("lee-2.0-pro")).toBe("qwen3.5:27b");
+  });
+
+  it("reports installed status for the selected Lee profile's backing tag", async () => {
+    vi.stubEnv("VMTECH_LEE_2_LITE_MODEL", "qwen3.5:9b");
+    const request = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ models: [{ name: "qwen3.5:9b" }] }), {
+        status: 200,
+      })
+    );
+    vi.stubGlobal("fetch", request);
+    await expect(getLocalModelStatus("lee-2.0-lite")).resolves.toMatchObject({
+      online: true,
+      installed: true,
+      model: "qwen3.5:9b",
+      profile: "lee-2.0-lite",
+    });
+  });
+
   it("sends one non-streaming request to Ollama and returns the local answer", async () => {
     vi.stubEnv("OLLAMA_BASE_URL", "http://127.0.0.1:11434");
     vi.stubEnv("OLLAMA_MODEL", "qwen3.5:4b");

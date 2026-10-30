@@ -602,6 +602,39 @@
   max-width: 760px;
   margin: 13px auto 0;
 }
+.lee-model-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+  margin: 0 2px 9px;
+}
+.lee-model-picker label {
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+.lee-model-picker select {
+  min-height: 31px;
+  max-width: 100%;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 10px;
+}
+.lee-model-picker select:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.lee-model-picker > span {
+  flex: 1 1 160px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
 .composer {
   padding: 13px 14px 11px 17px;
   border: 1px solid #dedfe9;

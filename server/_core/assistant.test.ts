@@ -149,6 +149,25 @@ describe("assistant provider controls", () => {
     ).rejects.toThrow(/Public inference hosts/);
     expect(request).not.toHaveBeenCalled();
   });
+  it("reports the selected Lee model's pull command without falling back", async () => {
+    vi.stubEnv("VMTECH_LEE_2_LITE_MODEL", "qwen3.5:9b");
+    const request = vi
+      .fn()
+      .mockResolvedValue(new Response("model not found", { status: 404 }));
+    vi.stubGlobal("fetch", request);
+    await expect(
+      streamAssistant(
+        [{ role: "user", content: "Draft an automation." }],
+        new AbortController().signal,
+        () => undefined,
+        "lee-2.0-lite"
+      )
+    ).rejects.toThrow("ollama pull qwen3.5:9b");
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(request.mock.calls[0][1].body)).model).toBe(
+      "qwen3.5:9b"
+    );
+  });
   it("accepts one attached-code message and rejects an oversized conversation", () => {
     expect(
       assistantMessageListSchema.safeParse([
@@ -164,6 +183,7 @@ describe("assistant provider controls", () => {
   });
   it("streams Ollama NDJSON token content", async () => {
     vi.stubEnv("OLLAMA_MODEL", "qwen3.5:4b");
+    vi.stubEnv("VMTECH_LEE_2_PRO_MODEL", "qwen3.5:27b");
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(c) {
@@ -183,10 +203,14 @@ describe("assistant provider controls", () => {
     await streamAssistant(
       [{ role: "user", content: "hi" }],
       new AbortController().signal,
-      t => tokens.push(t)
+      t => tokens.push(t),
+      "lee-2.0-pro"
     );
     expect(tokens).toEqual(["Hi", "!"]);
     const init = request.mock.calls[0]?.[1] as RequestInit;
-    expect(JSON.parse(String(init.body)).keep_alive).toBe("30m");
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      model: "qwen3.5:27b",
+      keep_alive: "30m",
+    });
   });
 });

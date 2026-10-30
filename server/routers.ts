@@ -1,6 +1,11 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { getLocalModelStatus, LocalModelError } from "./_core/localModel";
+import {
+  getLocalModelStatus,
+  LEE_MODEL_PROFILE_IDS,
+  LocalModelError,
+  type LeeModelProfile,
+} from "./_core/localModel";
 import { publicProcedure, router } from "./_core/trpc";
 import {
   assistantMessageListSchema,
@@ -30,8 +35,20 @@ const runtimeContext =
 
 export type AssistantSkill = keyof typeof skillPrompt;
 
-export function buildSystemPrompt(skill: AssistantSkill) {
-  return `${skillPrompt[skill]}\n\nYou are a helpful assistant, not an autonomous actor. Do not claim you have executed code, changed files, connected business tools, or completed an external action. Generated plans, code, and automations are drafts for the user to review. Use the currently active provider selected by the operator or explicitly by the user. Deployment context supplied by the app operator: ${runtimeContext} When users ask where inference runs, answer from this context and do not speculate beyond it. Do not claim the model was trained by VMTech. Keep answers useful and structured without unnecessary verbosity.`;
+const modelGuidance: Record<LeeModelProfile, string> = {
+  "lee-1.0":
+    "Fast Q&A response mode: prioritize direct answers to straightforward questions. Keep simple answers concise and avoid unnecessary steps.",
+  "lee-2.0-lite":
+    "Practical task response mode: focus on automations and everyday tasks. Organize work into clear steps, inputs, decisions, and likely failure handling.",
+  "lee-2.0-pro":
+    "Deep coding and complex-task response mode: explain assumptions, trace important edge cases, and give structured, reviewable solutions.",
+};
+
+export function buildSystemPrompt(
+  skill: AssistantSkill,
+  profile: LeeModelProfile = "lee-1.0"
+) {
+  return `${skillPrompt[skill]}\n\n${modelGuidance[profile]}\n\nYou are a helpful assistant, not an autonomous actor. Do not claim you have executed code, changed files, connected business tools, or completed an external action. Generated plans, code, and automations are drafts for the user to review. Use the currently active provider selected by the operator or explicitly by the user. Deployment context supplied by the app operator: ${runtimeContext} When users ask where inference runs, answer from this context and do not speculate beyond it. Do not claim the model was trained by VMTech. Keep answers useful and structured without unnecessary verbosity.`;
 }
 
 export const appRouter = router({
@@ -44,7 +61,13 @@ export const appRouter = router({
     }),
   }),
   assistant: router({
-    status: publicProcedure.query(() => getLocalModelStatus()),
+    status: publicProcedure
+      .input(
+        z
+          .object({ profile: z.enum(LEE_MODEL_PROFILE_IDS).optional() })
+          .optional()
+      )
+      .query(({ input }) => getLocalModelStatus(input?.profile)),
     generate: publicProcedure
       .input(
         z.object({
@@ -57,6 +80,7 @@ export const appRouter = router({
             "general",
           ]),
           messages: assistantMessageListSchema,
+          profile: z.enum(LEE_MODEL_PROFILE_IDS).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -70,13 +94,16 @@ export const appRouter = router({
           });
         }
         try {
-          const content = await generateWithProvider([
-            {
-              role: "system",
-              content: buildSystemPrompt(input.skill),
-            },
-            ...input.messages,
-          ]);
+          const content = await generateWithProvider(
+            [
+              {
+                role: "system",
+                content: buildSystemPrompt(input.skill, input.profile),
+              },
+              ...input.messages,
+            ],
+            input.profile
+          );
           return { content };
         } catch (error) {
           if (error instanceof LocalModelError) {

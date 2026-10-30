@@ -7,10 +7,10 @@ A self-hostable, multi-skill AI workbench for automation drafts, code debugging 
 1. Install Docker Desktop or Docker Engine with Docker Compose v2.
 2. Copy `.env.example` to `.env`.
 3. Start the app and Ollama service: `docker compose up --build -d`.
-4. Download the default model: `docker compose exec ollama ollama pull qwen3.5:4b`.
+4. Pull the default automation profile model: `docker compose exec ollama ollama pull qwen3.5:9b`.
 5. Open **http://localhost:3000**.
 
-The default model is Qwen 3.5 4B for speed on common CPU hardware. For a larger quality option, set `OLLAMA_MODEL=qwen3.5:9b` in `.env`, restart the services, and download that model. Model downloads require internet; inference uses the local Ollama container by default. See [LOCAL_AI.md](LOCAL_AI.md) for GPU setup, provider settings, hardware, privacy, and maintenance.
+Choose **Lee 1.0** for fast questions, **Lee 2.0 Lite** for automations and everyday tasks, or **Lee 2.0 Pro** for coding and complex tasks. VMTech uses those names for configurable local Ollama profiles; they are not separate VMTech-trained weights. Defaults map to Qwen 3.5 4B, 9B, and 27B. Pull a profile's tag before selecting it. The 27B tag is a large download and needs substantial memory. Set `VMTECH_LEE_1_MODEL`, `VMTECH_LEE_2_LITE_MODEL`, or `VMTECH_LEE_2_PRO_MODEL` in `.env` to map a profile to a different local Ollama tag. Model downloads require internet; inference uses the local Ollama container by default. See [LOCAL_AI.md](LOCAL_AI.md) for model sizes, GPU setup, provider settings, hardware, privacy, and maintenance.
 
 ## Optional API provider
 

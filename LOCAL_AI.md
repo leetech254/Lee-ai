@@ -1,6 +1,8 @@
 # VMTech AI — local and API provider setup
 
-VMTech's default provider is a Qwen 3.5 model served by Ollama on the same computer/server as the app. It uses no AI-provider key or hosted inference by default. The starter model is `qwen3.5:4b` for quicker responses on modest hardware; `qwen3.5:9b` is a stronger but slower/larger option. The official [Ollama model catalogue](https://ollama.com/library/qwen3.5) lists approximate downloads of 3.3–4.0 GB for 4B and 6.6–7.6 GB for 9B. These are model-file sizes, not total runtime RAM. Speed depends on CPU, RAM, context, and GPU. VMTech configures streaming so text can appear before generation is complete; this improves time-to-first-visible-content, not the model's underlying token-generation speed.
+VMTech's default provider is a local Qwen 3.5 model served by Ollama on the same computer/server as the app. It uses no AI-provider key or hosted inference by default. The model picker offers **Lee 1.0** for fast questions and answers, **Lee 2.0 Lite** for automation and everyday tasks, and **Lee 2.0 Pro** for coding and complex tasks. These are VMTech profile names that route to configurable Ollama model tags, not separate weights trained by VMTech. Defaults are `qwen3.5:4b`, `qwen3.5:9b`, and `qwen3.5:27b`, respectively. The official [Ollama model catalogue](https://ollama.com/library/qwen3.5) lists approximate downloads of 3.3–4.0 GB for 4B, 6.6–7.6 GB for 9B, and 17–20 GB for 27B. Download sizes are not total runtime RAM; Pro needs substantial memory and may not run well on every machine. Speed depends on CPU, RAM, context, and GPU. VMTech configures streaming so text can appear before generation is complete; this improves time-to-first-visible-content, not the model's underlying token-generation speed.
+
+VMTech recommends Lite when you choose Automations or Project Plans, Pro for Code Debugger, and Lee 1.0 for general questions, teaching, and learning. Choose another profile manually from the selector above the message box whenever you prefer. The selected profile's tag and download status are shown in the workspace; the app does not fall back to a different model if the selected tag is missing.
 
 This is an existing open-weight model integrated into VMTech; it is not a foundation model trained from scratch. The current Manus Preview runs in a sandbox and is not running on your Android phone. The Compose setup below is the option for running the app and model on a machine you control.
 
@@ -8,20 +10,20 @@ This is an existing open-weight model integrated into VMTech; it is not a founda
 
 Install Docker Desktop or Docker Engine with Docker Compose v2, then open a terminal in the VMTech project folder.
 
-1. Copy `.env.example` to `.env` (PowerShell: `Copy-Item .env.example .env`; macOS/Linux: `cp .env.example .env`). The default model is `qwen3.5:4b`; change `OLLAMA_MODEL` to `qwen3.5:9b` if you prefer the larger model.
+1. Copy `.env.example` to `.env` (PowerShell: `Copy-Item .env.example .env`; macOS/Linux: `cp .env.example .env`). The three profile tags are configured as `VMTECH_LEE_1_MODEL`, `VMTECH_LEE_2_LITE_MODEL`, and `VMTECH_LEE_2_PRO_MODEL`.
 2. Build and start the app and local model service:
 
    ```sh
    docker compose up --build -d
    ```
 
-3. Download the selected model into Ollama's persistent local volume. For the default:
+3. Download the model for the profile you plan to use into Ollama's persistent local volume. Automation opens with Lee 2.0 Lite selected by default:
 
    ```sh
-   docker compose exec ollama ollama pull qwen3.5:4b
+   docker compose exec ollama ollama pull qwen3.5:9b
    ```
 
-   If you selected 9B, pull that tag instead. The initial download requires internet access and several gigabytes of disk; subsequent inference uses the local service.
+   For Lee 1.0, pull `qwen3.5:4b`. For Lee 2.0 Pro, pull `qwen3.5:27b`; this is a 17–20 GB model download and needs substantial memory. The UI shows the configured tag for the selected profile and reports when it needs downloading. It does not silently substitute another model. Initial downloads require internet access; subsequent inference uses the local service.
 
 4. Open **http://localhost:3000**. The sidebar shows whether the local model is reachable and installed.
 
@@ -59,7 +61,10 @@ Ollama's port 11434 is not published to the host/internet. The app binds to loop
 
 Runtime defaults in `.env.example`:
 
-- `OLLAMA_MODEL`: `qwen3.5:4b` (fast default; use `qwen3.5:9b` for a larger option).
+- `VMTECH_LEE_1_MODEL`: `qwen3.5:4b` (fast questions and answers).
+- `VMTECH_LEE_2_LITE_MODEL`: `qwen3.5:9b` (automation and everyday tasks).
+- `VMTECH_LEE_2_PRO_MODEL`: `qwen3.5:27b` (coding and complex tasks; large download and memory footprint).
+- `OLLAMA_MODEL`: legacy fallback for Lee 1.0 when `VMTECH_LEE_1_MODEL` is unset.
 - `OLLAMA_NUM_CTX`: `6144` tokens; a larger context uses more memory.
 - `OLLAMA_NUM_PREDICT`: `1024` maximum generated tokens.
 - `OLLAMA_TIMEOUT_MS`: `300000` (five minutes).

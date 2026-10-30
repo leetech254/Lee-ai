@@ -31,6 +31,7 @@ type SkillId =
   | "learning"
   | "plans"
   | "general";
+type LeeModelProfile = "lee-1.0" | "lee-2.0-lite" | "lee-2.0-pro";
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type ProviderMeta = {
   enabled: boolean;
@@ -43,6 +44,37 @@ type ProviderMeta = {
 type Attachment = { name: string; content: string };
 const FILE_LIMIT = 16000;
 const CHAT_LIMIT = 18000;
+const leeModelProfiles: {
+  id: LeeModelProfile;
+  name: string;
+  purpose: string;
+  defaultTag: string;
+}[] = [
+  {
+    id: "lee-1.0",
+    name: "Lee 1.0",
+    purpose: "Fast questions & answers",
+    defaultTag: "qwen3.5:4b",
+  },
+  {
+    id: "lee-2.0-lite",
+    name: "Lee 2.0 Lite",
+    purpose: "Automations & everyday tasks",
+    defaultTag: "qwen3.5:9b",
+  },
+  {
+    id: "lee-2.0-pro",
+    name: "Lee 2.0 Pro",
+    purpose: "Coding & complex tasks",
+    defaultTag: "qwen3.5:27b",
+  },
+];
+
+function recommendedLeeProfile(skill: SkillId): LeeModelProfile {
+  if (skill === "code") return "lee-2.0-pro";
+  if (skill === "automation" || skill === "plans") return "lee-2.0-lite";
+  return "lee-1.0";
+}
 
 const Streamdown = lazy(() =>
   import("streamdown").then(module => ({ default: module.Streamdown }))
@@ -289,6 +321,8 @@ function fitRequestContext(history: ChatMessage[]) {
 
 export default function Home() {
   const [activeSkill, setActiveSkill] = useState<SkillId>("automation");
+  const [modelProfile, setModelProfile] =
+    useState<LeeModelProfile>("lee-2.0-lite");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
@@ -317,10 +351,13 @@ export default function Home() {
   const endRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const conversationVersion = useRef(0);
-  const localStatus = trpc.assistant.status.useQuery(undefined, {
-    refetchInterval: 30_000,
-    retry: false,
-  });
+  const localStatus = trpc.assistant.status.useQuery(
+    { profile: modelProfile },
+    {
+      refetchInterval: 30_000,
+      retry: false,
+    }
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -387,6 +424,7 @@ export default function Home() {
     streamController.current = null;
     setBusy(false);
     setAttachments([]);
+    if (skill !== activeSkill) setModelProfile(recommendedLeeProfile(skill));
     setActiveSkill(skill);
     setMessages([]);
     setInput("");
@@ -395,7 +433,11 @@ export default function Home() {
     setMobileNavOpen(false);
   };
 
-  const runAssistant = async (history: ChatMessage[], skill = activeSkill) => {
+  const runAssistant = async (
+    history: ChatMessage[],
+    skill = activeSkill,
+    profile = modelProfile
+  ) => {
     streamController.current?.abort();
     const controller = new AbortController();
     streamController.current = controller;
@@ -411,7 +453,11 @@ export default function Home() {
           "Content-Type": "application/json",
           Accept: "text/event-stream",
         },
-        body: JSON.stringify({ skill, messages: fitRequestContext(history) }),
+        body: JSON.stringify({
+          skill,
+          profile,
+          messages: fitRequestContext(history),
+        }),
         signal: controller.signal,
       });
       if (!response.ok || !response.body)
@@ -512,7 +558,7 @@ export default function Home() {
     ];
     setMessages(history);
     setRetryMessages(null);
-    void runAssistant(history);
+    void runAssistant(history, activeSkill, modelProfile);
   };
 
   const selectSkill = (skill: SkillId) => {
@@ -534,6 +580,9 @@ export default function Home() {
 
   const active = skills.find(skill => skill.id === activeSkill)!;
   const intro = welcome[activeSkill];
+  const selectedLeeProfile = leeModelProfiles.find(
+    profile => profile.id === modelProfile
+  )!;
   const externalProvider = provider?.provider === "openai-compatible";
   const modelReady = externalProvider
     ? Boolean(provider.configured)
@@ -543,11 +592,11 @@ export default function Home() {
       ? `API provider configured · ${provider.model}`
       : "API provider needs setup"
     : localStatus.isLoading
-      ? "Checking local AI"
+      ? `Checking ${selectedLeeProfile.name}`
       : localStatus.data?.installed
-        ? "Local model ready"
+        ? `${selectedLeeProfile.name} ready`
         : localStatus.data?.online
-          ? "Model download needed"
+          ? `${selectedLeeProfile.name} needs download`
           : "Local AI offline";
   const statusDotClass = modelReady
     ? ""
@@ -654,7 +703,9 @@ export default function Home() {
           <div className="topbar-right">
             <span className="topbar-chip">
               <span className={`status-dot${statusDotClass}`} />
-              {externalProvider ? "External API" : "Local AI"}
+              {externalProvider
+                ? "External API"
+                : `Local · ${selectedLeeProfile.name}`}
             </span>
             <button
               className="icon-button settings-button"
@@ -823,7 +874,7 @@ export default function Home() {
                 {externalProvider
                   ? "Open Settings to complete the provider configuration, or switch back to local Ollama."
                   : localStatus.data?.online
-                    ? `Run docker compose exec ollama ollama pull ${localStatus.data.model} from the project folder, then retry.`
+                    ? `Run “ollama pull ${localStatus.data.model}” on the Ollama host, or “docker compose exec ollama ollama pull ${localStatus.data.model}” from the project folder, then retry. Lee 2.0 Pro needs substantial disk space and memory.`
                     : "Start the local stack with docker compose up -d and follow LOCAL_AI.md in the project folder."}
               </span>
             </div>
@@ -934,6 +985,28 @@ export default function Home() {
             </div>
           )}
           <div className="composer-zone">
+            <div className="lee-model-picker">
+              <label htmlFor="lee-model-profile">Lee model</label>
+              <select
+                id="lee-model-profile"
+                value={modelProfile}
+                disabled={busy || externalProvider}
+                onChange={event =>
+                  setModelProfile(event.target.value as LeeModelProfile)
+                }
+              >
+                {leeModelProfiles.map(profile => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.name} · {profile.purpose}
+                  </option>
+                ))}
+              </select>
+              <span>
+                {externalProvider
+                  ? `Using external model · ${provider.model}`
+                  : `${selectedLeeProfile.purpose} · ${localStatus.data?.model || selectedLeeProfile.defaultTag}`}
+              </span>
+            </div>
             {error && (
               <div className="error-banner" role="alert">
                 <span>{error}</span>

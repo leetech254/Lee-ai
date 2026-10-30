@@ -10,6 +10,9 @@ services:
       VMTECH_RUNTIME_CONTEXT: "This is a self-hosted VMTech instance. Ollama runs privately in a container on the same machine as the app."
       VMTECH_ALLOW_PROVIDER_SETTINGS: ${VMTECH_ALLOW_PROVIDER_SETTINGS:-true}
       OLLAMA_BASE_URL: http://ollama:11434
+      VMTECH_LEE_1_MODEL: ${VMTECH_LEE_1_MODEL:-}
+      VMTECH_LEE_2_LITE_MODEL: ${VMTECH_LEE_2_LITE_MODEL:-qwen3.5:9b}
+      VMTECH_LEE_2_PRO_MODEL: ${VMTECH_LEE_2_PRO_MODEL:-qwen3.5:27b}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.5:4b}
       OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-300000}
       OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-6144}
