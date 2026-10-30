@@ -1,14 +1,21 @@
 # VMTech AI
 
-React / Express / tRPC / Drizzle starter, adapted from the Sandbox web-db-user template.
+VMTech AI helps with workflow automation drafts, code debugging, teaching, learning plans, project plans, and general questions. It runs open-weight Qwen 3.5 models through a local/private Ollama service; prompts are not sent to a third-party cloud AI provider, and no AI-provider API key is required.
 
-- `pnpm dev`: development server; honors `PORT` (default 3000).
-- `pnpm build` / `pnpm start`: build and serve `dist/index.js` and `dist/public/`.
-- `pnpm db:migrate`: apply checked-in migrations. `pnpm db:push`: generate and apply new schema changes.
-- `pnpm check` / `pnpm test`: types and application tests.
+## Run locally
 
-Start with the Webdev skill's default-template guide. Platform login, storage, payments and service contracts live in its shared references; read the relevant capability before extending its helper.
+1. Install Docker Desktop or Docker Engine with Compose v2.
+2. Copy `.env.example` to `.env` and adjust `OLLAMA_MODEL` if needed.
+3. Run `docker compose up --build -d`.
+4. Download the selected model, e.g. `docker compose exec ollama ollama pull qwen3.5:9b`.
+5. Open `http://localhost:3000`.
 
-`server/_core/publicConfig.ts` exposes only named public runtime values. Private keys stay server-side. The platform serves managed `/manus-storage/` assets; the application does not register a second proxy.
+The first model download requires internet access; later inference is handled by the local Ollama service. The default stack binds the app to loopback and does not publish Ollama's port. Read [LOCAL_AI.md](LOCAL_AI.md) for hardware choices, GPU setup, configuration, privacy boundaries, and shutdown commands.
 
-Platform configuration is readable and editable through `webdev.config`. Default settings are initial values, not enforced constraints. The agent may modify the files, commands and configuration or follow the flexible guide for another stack.
+## Development and checks
+
+- `pnpm dev`: local development server, bound to loopback unless `HOST` is explicitly set.
+- `pnpm check`: TypeScript diagnostics.
+- `pnpm test`: unit and integration tests.
+- `pnpm build`: production frontend and server build.
+- `pnpm start`: serve the built app, bound to loopback unless `HOST` is explicitly set.

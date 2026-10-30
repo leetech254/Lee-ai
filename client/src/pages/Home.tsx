@@ -91,6 +91,7 @@ export default function Home() {
   const endRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const conversationVersion = useRef(0);
+  const localStatus = trpc.assistant.status.useQuery(undefined, { refetchInterval: 30_000, retry: false });
   const chat = trpc.assistant.generate.useMutation();
 
   useEffect(() => {
@@ -117,9 +118,9 @@ export default function Home() {
       setRetryMessages(null);
       setInput("");
       requestAnimationFrame(() => textareaRef.current?.focus());
-    } catch {
+    } catch (requestError) {
       if (requestVersion !== conversationVersion.current) return;
-      setError("I couldn’t reach the AI service just now. Your message is still here—try again in a moment.");
+      setError(requestError instanceof Error ? requestError.message : "The local model couldn't complete that request. See LOCAL_AI.md and try again.");
       setRetryMessages(history);
     }
   };
@@ -150,6 +151,15 @@ export default function Home() {
 
   const active = skills.find(skill => skill.id === activeSkill)!;
   const intro = welcome[activeSkill];
+  const modelReady = Boolean(localStatus.data?.online && localStatus.data.installed);
+  const modelStatus = localStatus.isLoading
+    ? "Checking local AI"
+    : localStatus.data?.installed
+      ? "Local model ready"
+      : localStatus.data?.online
+        ? "Model download needed"
+        : "Local AI offline";
+  const statusDotClass = modelReady ? "" : localStatus.data?.online ? " status-dot-warn" : " status-dot-offline";
 
   return (
     <div className="app-shell">
@@ -174,7 +184,7 @@ export default function Home() {
         </nav>
         <div className="sidebar-note"><span className="note-spark"><Sparkles size={14} /></span><div><strong>Ideas into action.</strong><p>One thoughtful step at a time.</p></div></div>
         <div className="sidebar-bottom">
-          <div className="service-status"><span className="status-dot" /><span>AI workspace ready</span></div>
+          <div className="service-status" role="status"><span className={`status-dot${statusDotClass}`} /><span>{modelStatus}</span></div>
           <div className="profile-row"><div className="profile-avatar">V</div><div className="profile-copy"><strong>VMTech workspace</strong><span>Personal assistant</span></div><span className="profile-menu">···</span></div>
         </div>
       </aside>
@@ -182,7 +192,7 @@ export default function Home() {
       <main className="main-panel">
         <header className="topbar">
           <div className="topbar-left"><button className="icon-button mobile-menu" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><Menu size={19} /></button><span className="breadcrumb-muted">Workspace</span><span className="breadcrumb-slash">/</span><span className="breadcrumb-current">{active.label}</span></div>
-          <div className="topbar-right"><span className="topbar-chip"><span className="status-dot" />AI assistant</span><button className="help-button" aria-label="Help" title="Your AI responses are drafts—review important details."><span>?</span></button></div>
+          <div className="topbar-right"><span className="topbar-chip"><span className={`status-dot${statusDotClass}`} />Local AI</span><button className="help-button" aria-label="Help" title="Your AI responses are drafts—review important details."><span>?</span></button></div>
         </header>
 
         <div className={`work-area${messages.length ? " work-area-chat" : ""}`}>
@@ -212,6 +222,7 @@ export default function Home() {
             <div ref={endRef} />
           </section>}
 
+          {!modelReady && <div className="local-runtime-notice" role="status"><strong>{modelStatus}.</strong><span>{localStatus.data?.online ? `Run docker compose exec ollama ollama pull ${localStatus.data.model} from the project folder, then retry.` : "Start the local stack with docker compose up -d and follow LOCAL_AI.md in the project folder."}</span></div>}
           <div className="composer-zone">
             {error && <div className="error-banner" role="alert"><span>{error}</span><button onClick={() => retryMessages ? void runAssistant(retryMessages) : setError("")} disabled={chat.isPending}>{retryMessages ? "Try again" : "Dismiss"}</button></div>}
             <form className="composer" onSubmit={event => { event.preventDefault(); send(); }}>
@@ -221,7 +232,7 @@ export default function Home() {
             <p className="disclaimer">AI can make mistakes. Review code before running it and check important plans before acting.</p>
           </div>
         </div>
-        <footer className="app-footer"><span>Built for ideas in progress.</span><span className="footer-status"><span className="status-dot" /> VMTech AI</span></footer>
+        <footer className="app-footer"><span>Built for ideas in progress.</span><span className="footer-status"><span className={`status-dot${statusDotClass}`} /> VMTech AI</span></footer>
       </main>
     </div>
   );
