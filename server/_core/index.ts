@@ -19,6 +19,16 @@ import {
 import { LEE_MODEL_PROFILE_IDS } from "./localModel";
 import { z } from "zod";
 import { serveStatic, setupVite } from "./vite";
+import {
+  accessApiGate,
+  accessGateEnabled,
+  isSameOriginAccessRequest,
+  accessStatus,
+  initializeAccessAuth,
+  login as accessLogin,
+  logout as accessLogout,
+} from "./accessAuth";
+import { initializeAssistantProvider } from "./assistant";
 
 function sameOriginSettingsRequest(req: Request) {
   return isSameOriginMutation(
@@ -31,11 +41,26 @@ function sameOriginSettingsRequest(req: Request) {
 }
 
 async function startServer() {
+  initializeAccessAuth();
+  initializeAssistantProvider();
   const app = express();
+  app.set("trust proxy", 1);
   const server = createServer(app);
   app.use(express.json({ limit: "128kb" }));
   app.use(express.urlencoded({ limit: "128kb", extended: true }));
   app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+  app.get("/api/access/status", (req, res) =>
+    res.setHeader("Cache-Control", "no-store").json(accessStatus(req))
+  );
+  app.post("/api/access/login", (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isSameOriginAccessRequest(req))
+      return res.status(403).json({ error: "Request rejected." });
+    if (!accessGateEnabled()) return res.json({ ok: true });
+    return accessLogin(req, res);
+  });
+  app.use(accessApiGate);
+  app.post("/api/access/logout", accessLogout);
   const safeProviderMetadata = () =>
     providerSettingsEnabled()
       ? getProviderMetadata()

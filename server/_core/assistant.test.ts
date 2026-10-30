@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   assistantMessageListSchema,
   getProviderMetadata,
+  initializeAssistantProvider,
   isSameOriginMutation,
+  providerSettingsDisabledMetadata,
   setProvider,
   testProvider,
   validateProviderInput,
@@ -97,6 +99,24 @@ describe("assistant provider controls", () => {
     expect(JSON.stringify(getProviderMetadata())).not.toContain(
       "never-return-this"
     );
+  });
+  it("loads hosted provider credentials from env without exposing them", () => {
+    const apiKey = "hostkb-server-secret";
+    initializeAssistantProvider({
+      VMTECH_AI_PROVIDER: "openai-compatible",
+      VMTECH_OPENAI_BASE_URL: "https://provider.example/v1",
+      VMTECH_OPENAI_MODEL: "hosted-model",
+      VMTECH_OPENAI_API_KEY: apiKey,
+    } as NodeJS.ProcessEnv);
+    const metadata = providerSettingsDisabledMetadata();
+    expect(metadata).toMatchObject({
+      enabled: false,
+      provider: "openai-compatible",
+      model: "hosted-model",
+      configured: true,
+    });
+    expect(JSON.stringify(metadata)).not.toContain(apiKey);
+    expect(JSON.stringify(metadata)).not.toContain("provider.example");
   });
   it("reuses an unchanged server-held key without exposing it", async () => {
     const request = vi

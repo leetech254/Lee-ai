@@ -1545,6 +1545,166 @@
   border-radius: 8px;
   background: var(--canvas);
 }
+.access-screen,
+.access-loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(
+      ellipse at 50% 36%,
+      rgba(67, 86, 245, 0.09),
+      transparent 42%
+    ),
+    var(--canvas);
+  color: var(--ink);
+}
+.access-card {
+  width: min(100%, 420px);
+  padding: 38px 40px 30px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--paper);
+  box-shadow: 0 22px 70px rgba(35, 37, 56, 0.09);
+}
+.access-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 35px;
+}
+.access-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  margin: 0 auto 18px;
+  border-radius: 14px;
+  background: var(--blue-wash);
+  color: var(--blue);
+}
+.access-eyebrow {
+  margin: 0 0 8px;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+.access-card h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(26px, 7vw, 32px);
+  letter-spacing: -0.045em;
+  text-align: center;
+}
+.access-description {
+  margin: 9px 0 25px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+.access-form {
+  display: grid;
+  gap: 9px;
+}
+.access-form label {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 650;
+}
+.access-form input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--canvas);
+  color: var(--ink);
+  font: inherit;
+}
+.access-form input:focus-visible {
+  border-color: var(--blue);
+  outline: 3px solid rgba(67, 86, 245, 0.2);
+  outline-offset: 1px;
+}
+.access-form button {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+}
+.access-form button:hover:not(:disabled) {
+  background: var(--blue-dark);
+}
+.access-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.access-error {
+  margin: 0;
+  color: #c84556;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.access-footnote {
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+.access-loading {
+  gap: 12px;
+  align-content: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.access-loading-mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--blue);
+  color: white;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(67, 86, 245, 0.2);
+}
+.access-signout {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+.access-signout:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+@media (max-width: 480px) {
+  .access-card {
+    padding: 30px 23px 25px;
+  }
+  .access-signout span {
+    display: none;
+  }
+}
 .settings-footer {
   display: flex;
   justify-content: flex-end;

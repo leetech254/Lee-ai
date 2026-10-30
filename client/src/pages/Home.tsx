@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
+  LogOut,
   Settings,
   Paperclip,
   Download,
@@ -319,7 +320,7 @@ function fitRequestContext(history: ChatMessage[]) {
   return selected;
 }
 
-export default function Home() {
+export default function Home({ onSignOut }: { onSignOut?: () => void }) {
   const [activeSkill, setActiveSkill] = useState<SkillId>("automation");
   const [modelProfile, setModelProfile] =
     useState<LeeModelProfile>("lee-2.0-lite");
@@ -715,6 +716,26 @@ export default function Home() {
             >
               <Settings size={16} />
             </button>
+            {onSignOut && (
+              <button
+                className="access-signout"
+                onClick={async () => {
+                  try {
+                    const response = await fetch("/api/access/logout", {
+                      method: "POST",
+                    });
+                    if (response.ok) onSignOut();
+                  } catch {
+                    setError("Unable to sign out right now. Please try again.");
+                  }
+                }}
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut size={15} />
+                <span>Sign out</span>
+              </button>
+            )}
             <button
               className="help-button"
               aria-label="Help"

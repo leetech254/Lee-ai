@@ -56,6 +56,40 @@ type ActiveProvider = ProviderInput;
 let active: ActiveProvider = { provider: "ollama" };
 export const providerSettingsEnabled = () =>
   process.env.VMTECH_ALLOW_PROVIDER_SETTINGS === "true";
+export function initializeAssistantProvider(env = process.env) {
+  const provider = env.VMTECH_AI_PROVIDER?.trim() || "ollama";
+  if (provider === "ollama") {
+    active = { provider: "ollama" };
+    return;
+  }
+  if (provider !== "openai-compatible")
+    throw new Error("VMTECH_AI_PROVIDER must be ollama or openai-compatible.");
+  if (
+    !env.VMTECH_OPENAI_BASE_URL ||
+    !env.VMTECH_OPENAI_MODEL ||
+    !env.VMTECH_OPENAI_API_KEY
+  )
+    throw new Error(
+      "OpenAI-compatible inference requires VMTECH_OPENAI_BASE_URL, VMTECH_OPENAI_MODEL, and VMTECH_OPENAI_API_KEY."
+    );
+  const parsed = validateProviderInput({
+    provider,
+    baseUrl: env.VMTECH_OPENAI_BASE_URL,
+    model: env.VMTECH_OPENAI_MODEL,
+    apiKey: env.VMTECH_OPENAI_API_KEY,
+  });
+  if (
+    parsed.provider !== "openai-compatible" ||
+    new URL(parsed.baseUrl).protocol !== "https:"
+  )
+    throw new Error(
+      "The configured public OpenAI-compatible endpoint must use HTTPS."
+    );
+  active = {
+    ...parsed,
+    baseUrl: new URL(parsed.baseUrl).toString().replace(/\/$/, ""),
+  };
+}
 export function isSameOriginMutation(
   origin: string | undefined,
   host: string | undefined,
@@ -190,12 +224,19 @@ export function setProvider(input: ProviderInput) {
   return getProviderMetadata();
 }
 export function providerSettingsDisabledMetadata() {
-  return {
-    enabled: false,
-    provider: "ollama" as const,
-    model: getConfiguredModelName(),
-    configured: true,
-  };
+  return active.provider === "ollama"
+    ? {
+        enabled: false,
+        provider: "ollama" as const,
+        model: getConfiguredModelName(),
+        configured: true,
+      }
+    : {
+        enabled: false,
+        provider: "openai-compatible" as const,
+        model: active.model,
+        configured: Boolean(active.apiKey),
+      };
 }
 export async function testProvider(input: ProviderInput) {
   if (input.provider === "ollama") {

@@ -6,15 +6,18 @@ A self-hostable, multi-skill AI workbench for automation drafts, code debugging 
 
 1. Install Docker Desktop or Docker Engine with Docker Compose v2.
 2. Copy `.env.example` to `.env`.
-3. Start the app and Ollama service: `docker compose up --build -d`.
-4. Pull the default automation profile model: `docker compose exec ollama ollama pull qwen3.5:9b`.
-5. Open **http://localhost:3000**.
+3. Generate independent secrets with `openssl rand -base64 24` and `openssl rand -base64 32`; put the first in `VMTECH_ACCESS_PASSWORD` and the second in `VMTECH_SESSION_SECRET`. Keep both local and never commit `.env`.
+4. Start the app and Ollama service: `docker compose up --build -d`.
+5. Pull the default automation profile model: `docker compose exec ollama ollama pull qwen3.5:9b`.
+6. Open **http://localhost:3000** and sign in with the shared password.
 
 Choose **Lee 1.0** for fast questions, **Lee 2.0 Lite** for automations and everyday tasks, or **Lee 2.0 Pro** for coding and complex tasks. VMTech uses those names for configurable local Ollama profiles; they are not separate VMTech-trained weights. Defaults map to Qwen 3.5 4B, 9B, and 27B. Pull a profile's tag before selecting it. The 27B tag is a large download and needs substantial memory. Set `VMTECH_LEE_1_MODEL`, `VMTECH_LEE_2_LITE_MODEL`, or `VMTECH_LEE_2_PRO_MODEL` in `.env` to map a profile to a different local Ollama tag. Model downloads require internet; inference uses the local Ollama container by default. See [LOCAL_AI.md](LOCAL_AI.md) for model sizes, GPU setup, provider settings, hardware, privacy, and maintenance.
 
 ## Optional API provider
 
 You can explicitly configure an OpenAI-compatible provider in **Settings → AI provider** when running the loopback-bound self-hosted stack. Use your own endpoint, model, and API key. Keys stay in server memory only and are cleared when the server restarts. When a remote provider is selected, the provider receives the prompts and any attached source text. The shared Manus Preview does not accept API keys. Local Ollama stays the default; there is no silent provider fallback.
+
+For public deployment on HostKB Cloud, use the root Dockerfile, set the shared login and session secrets in HostKB's environment settings, and configure any remote API key server-side. Read [HOSTKB_DEPLOY.md](HOSTKB_DEPLOY.md) before deploying; it explains the HostKB app/runtime versus managed database service and the inference requirements.
 
 VMTech produces plans and code drafts; it does not execute code or trigger business automations. Connecting real automation services requires separate integration choices and authorization.
 
