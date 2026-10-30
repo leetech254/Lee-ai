@@ -1,18 +1,24 @@
 # VMTech AI
 
-VMTech AI helps with workflow automation drafts, code debugging, teaching, learning plans, project plans, and general questions. It runs open-weight Qwen 3.5 models through a local/private Ollama service; prompts are not sent to a third-party cloud AI provider, and no AI-provider API key is required.
+A self-hostable, multi-skill AI workbench for automation drafts, code debugging and review, teaching, learning plans, project plans, and general help. Assistant output streams as it arrives. Code mode accepts small text/source attachments; automation mode exports a reviewable Markdown workflow draft. Light, Dark, and System themes are available in Settings.
 
-## Run locally
+## Quick start
 
-1. Install Docker Desktop or Docker Engine with Compose v2.
-2. Copy `.env.example` to `.env` and adjust `OLLAMA_MODEL` if needed.
-3. Run `docker compose up --build -d`.
-4. Download the selected model, e.g. `docker compose exec ollama ollama pull qwen3.5:9b`.
-5. Open `http://localhost:3000`.
+1. Install Docker Desktop or Docker Engine with Docker Compose v2.
+2. Copy `.env.example` to `.env`.
+3. Start the app and Ollama service: `docker compose up --build -d`.
+4. Download the default model: `docker compose exec ollama ollama pull qwen3.5:4b`.
+5. Open **http://localhost:3000**.
 
-The first model download requires internet access; later inference is handled by the local Ollama service. The default stack binds the app to loopback and does not publish Ollama's port. Read [LOCAL_AI.md](LOCAL_AI.md) for hardware choices, GPU setup, configuration, privacy boundaries, and shutdown commands.
+The default model is Qwen 3.5 4B for speed on common CPU hardware. For a larger quality option, set `OLLAMA_MODEL=qwen3.5:9b` in `.env`, restart the services, and download that model. Model downloads require internet; inference uses the local Ollama container by default. See [LOCAL_AI.md](LOCAL_AI.md) for GPU setup, provider settings, hardware, privacy, and maintenance.
 
-## Development and checks
+## Optional API provider
+
+You can explicitly configure an OpenAI-compatible provider in **Settings → AI provider** when running the loopback-bound self-hosted stack. Use your own endpoint, model, and API key. Keys stay in server memory only and are cleared when the server restarts. When a remote provider is selected, the provider receives the prompts and any attached source text. The shared Manus Preview does not accept API keys. Local Ollama stays the default; there is no silent provider fallback.
+
+VMTech produces plans and code drafts; it does not execute code or trigger business automations. Connecting real automation services requires separate integration choices and authorization.
+
+## Development checks
 
 - `pnpm dev`: local development server, bound to loopback unless `HOST` is explicitly set.
 - `pnpm check`: TypeScript diagnostics.

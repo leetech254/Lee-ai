@@ -12,7 +12,7 @@ export class LocalModelError extends Error {
   }
 }
 
-const DEFAULT_MODEL = "qwen3.5:9b";
+const DEFAULT_MODEL = "qwen3.5:4b";
 const DEFAULT_BASE_URL = "http://127.0.0.1:11434";
 const MODEL_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
@@ -58,7 +58,7 @@ export function getConfiguredModelName() {
   return model;
 }
 
-function localEndpoint(path: "api/chat" | "api/tags") {
+export function localEndpoint(path: "api/chat" | "api/tags") {
   const configuredBase = (
     process.env.OLLAMA_BASE_URL || DEFAULT_BASE_URL
   ).trim();
@@ -142,13 +142,13 @@ export async function generateWithLocalModel(messages: LocalChatMessage[]) {
   );
   const numCtx = boundedInteger(
     process.env.OLLAMA_NUM_CTX,
-    8_192,
+    6_144,
     2_048,
     32_768
   );
   const numPredict = boundedInteger(
     process.env.OLLAMA_NUM_PREDICT,
-    2_048,
+    1_024,
     128,
     8_192
   );
